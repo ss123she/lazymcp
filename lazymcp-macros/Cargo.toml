@@ -1,11 +1,11 @@
 [package]
 name = "lazymcp-macros"
-version = "0.1.0"
 description = "macros for LazyMCP"
 keywords = ["mcp", "rmcp", "macro", "agent"]
 categories = ["asynchronous", "development-tools", "api-bindings"]
 readme.workspace = true
 
+version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
 license.workspace = true
