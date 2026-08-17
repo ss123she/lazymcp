@@ -1,6 +1,29 @@
 use proc_macro::TokenStream;
 use syn::{ExprLit, ItemFn, Lit, Meta::NameValue, Type, parse_macro_input};
 
+/// Turns any function into an MCP tool.
+///
+/// Arguments become the tool's JSON Schema (doc comments become field
+/// descriptions). Add a `State<T>` parameter to access shared state.
+/// The function's own doc comment becomes the tool's description.
+///
+/// Generates a `<fn_name>_tool` unit struct - register it with
+/// `LazyMcp::with_tool`.
+///
+/// # Example
+///
+/// ```ignore
+/// use lazymcp::tool;
+///
+/// /// Greet someone.
+/// #[tool]
+/// async fn greet(
+///     /// Name to greet
+///     name: String,
+/// ) -> String {
+///     format!("Hello, {name}!")
+/// }
+/// ```
 #[proc_macro_attribute]
 pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut item_fn = parse_macro_input!(item as ItemFn);

@@ -4,3 +4,11 @@ members = [
     "lazymcp",
     "lazymcp-macros"
 ]
+
+[workspace.package]
+rust-version = "1.88.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+authors = ["ss123she"]
+repository = "https://github.com/ss123she/lazymcp"
+readme = "README.md"

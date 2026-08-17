@@ -101,7 +101,7 @@ async fn complete_task(
     }
 }
 
-#[tokio::main]
+#[lazymcp::tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let store = TaskStore::default();
 
