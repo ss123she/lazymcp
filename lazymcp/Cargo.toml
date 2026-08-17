@@ -1,0 +1,19 @@
+[package]
+name = "lazymcp"
+version = "0.1.0"
+edition = "2024"
+authors = ["ss123she"]
+description = "Thin, ergonomic macros for building MCP servers directly on the official rmcp SDK"
+keywords = ["mcp", "model-context-protocol", "rmcp", "macro", "ai"]
+categories = ["asynchronous", "development-tools", "api-bindings"]
+
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+lazymcp-macros = { version = "0.1.0", path = "../lazymcp-macros" }
+
+rmcp = { version = "3.1.2"}
+tokio = { version = "1.53.1", features = ["full"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.151" }
+schemars = { version = "1.2.2" }

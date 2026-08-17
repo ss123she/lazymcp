@@ -1,0 +1,3 @@
+target/
+Cargo.lock
+lazymcp/Cargo.lock
