@@ -1,3 +1,6 @@
+//! Greeter tool demonstrating optional parameters (`Option<T>`) and system instructions.
+//!
+//! Run with: `cargo run -p lazymcp --example greeter`
 use lazymcp::{LazyMcp, tool};
 
 /// Generate a customized greeting message.
@@ -24,7 +27,7 @@ fn greet(
     }
 }
 
-#[lazymcp::tokio::main]
+#[lazymcp::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     LazyMcp::new("greeter", "0.1.0")
         .with_instructions("Assistant that generates greetings.")

@@ -54,7 +54,7 @@ fn safe_div(
     a.checked_div(b).ok_or("ERROR: Division by zero.")
 }
 
-#[lazymcp::tokio::main]
+#[lazymcp::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     LazyMcp::new("safe-division", "0.1.0")
         .with_tool(safe_div_tool)

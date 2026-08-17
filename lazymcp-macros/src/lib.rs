@@ -1,6 +1,56 @@
 use proc_macro::TokenStream;
 use syn::{ExprLit, ItemFn, Lit, Meta::NameValue, Type, parse_macro_input};
 
+/// Marks an `async` function as the entry point for the MCP server.
+///
+/// This macro initializes a multi-threaded Tokio runtime and executes the
+/// asynchronous `main` function to completion.
+///
+/// Using this macro removes the need to manually add `tokio` to your
+/// project's `Cargo.toml` dependencies.
+///
+/// # Examples
+///
+/// Basic usage:
+///
+/// ```ignore
+/// use lazymcp::{main, LazyMcp};
+///
+/// #[lazymcp::main]
+/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+///     LazyMcp::new("my-server", "0.1.0")
+///         .serve_stdio()
+///         .await?;
+///
+///     Ok(())
+/// }
+/// ```
+#[proc_macro_attribute]
+pub fn main(_args: TokenStream, item: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(item as ItemFn);
+    let vis = &input.vis;
+    let attrs = &input.attrs;
+    let sig = &input.sig;
+    let block = &input.block;
+    let fn_name = &sig.ident;
+    let output = &sig.output;
+
+    let generated = quote::quote! {
+        #(#attrs)*
+        #vis fn #fn_name() #output {
+            ::lazymcp::tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .expect("Failed to build Tokio runtime")
+                .block_on(async {
+                    #block
+                })
+        }
+    };
+
+    generated.into()
+}
+
 /// Turns any function into an MCP tool.
 ///
 /// Arguments become the tool's JSON Schema (doc comments become field
@@ -101,6 +151,8 @@ pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let expanded = quote::quote! {
         #[derive(lazymcp::schemars::JsonSchema, lazymcp::serde::Deserialize)]
+        #[serde(crate = "lazymcp::serde")]
+        #[schemars(crate = "lazymcp::schemars")]
         #[allow(non_camel_case_types)]
         struct #args_struct_name {
             #(#struct_fields),*

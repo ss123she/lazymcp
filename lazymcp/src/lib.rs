@@ -11,7 +11,7 @@ pub mod state;
 
 pub use error::McpError;
 pub use helper::IntoToolResult;
-pub use lazymcp_macros::tool;
+pub use lazymcp_macros::{main, tool};
 pub use rmcp;
 pub use rmcp::Json;
 pub use rmcp::model::{CallToolResult, ContentBlock, TextContent};

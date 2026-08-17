@@ -1,9 +1,19 @@
+//! In-memory CRUD task manager showcasing `State<T>`, custom types, and `JsonSchema`.
+//!
+//! Run with: `cargo run -p lazymcp --example custom_types`
+//! Note: Custom types require `serde` (with `derive` feature) and `schemars` in your `Cargo.toml`.
+//! ```toml
+//! [dependencies]
+//! lazymcp = "0.1"
+//! serde = { version = "1.0", features = ["derive"] }
+//! schemars = "1.2"
+//! ```
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use lazymcp::schemars::JsonSchema;
-use lazymcp::serde::{Deserialize, Serialize};
 use lazymcp::{Json, LazyMcp, State, tool};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 /// Task priority.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -101,7 +111,7 @@ async fn complete_task(
     }
 }
 
-#[lazymcp::tokio::main]
+#[lazymcp::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let store = TaskStore::default();
 
