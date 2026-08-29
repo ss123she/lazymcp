@@ -22,7 +22,6 @@ pub use state::State;
 pub use tokio;
 
 use rmcp::model::{CallToolResponse, ResultType, ServerCapabilities, ServerInfo};
-use rmcp::service::MaybeSendFuture;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::future::Future;
@@ -107,11 +106,21 @@ impl LazyMcp {
     }
 
     /// Registers a tool.
+    ///
+    /// # Panics
+    ///
+    /// Panics if a tool with the same name is already registered.
     pub fn with_tool<T>(mut self, tool: T) -> Self
     where
         T: McpTool + Send + Sync + 'static,
     {
-        self.tools.insert(tool.name().to_string(), Box::new(tool));
+        let name = tool.name().to_string();
+
+        if self.tools.contains_key(&name) {
+            panic!("lazymcp: tool '{name}' is already registered");
+        }
+
+        self.tools.insert(name, Box::new(tool));
         self
     }
 
@@ -172,44 +181,154 @@ impl rmcp::ServerHandler for LazyMcp {
         info
     }
 
-    fn list_tools(
+    async fn list_tools(
         &self,
         _request: Option<rmcp::model::PaginatedRequestParams>,
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
-    ) -> impl Future<Output = Result<rmcp::model::ListToolsResult, rmcp::ErrorData>> + MaybeSendFuture + '_
-    {
-        async move {
-            let tools = self.list_tools();
+    ) -> Result<rmcp::model::ListToolsResult, rmcp::ErrorData> {
+        let tools = self.list_tools();
 
-            let result = rmcp::model::ListToolsResult {
-                tools,
-                next_cursor: None,
-                meta: None,
-                result_type: Some(ResultType::COMPLETE),
-                ttl_ms: None,
-                cache_scope: None,
-            };
+        let result = rmcp::model::ListToolsResult {
+            tools,
+            next_cursor: None,
+            meta: None,
+            result_type: Some(ResultType::COMPLETE),
+            ttl_ms: None,
+            cache_scope: None,
+        };
 
-            Ok(result)
-        }
+        Ok(result)
     }
 
-    fn call_tool(
+    async fn call_tool(
         &self,
         request: rmcp::model::CallToolRequestParams,
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
-    ) -> impl Future<Output = Result<CallToolResponse, rmcp::ErrorData>> + MaybeSendFuture + '_
-    {
-        async move {
-            let args = request
-                .arguments
-                .map(serde_json::Value::Object)
-                .unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new()));
+    ) -> Result<CallToolResponse, rmcp::ErrorData> {
+        let args = request
+            .arguments
+            .map(serde_json::Value::Object)
+            .unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new()));
 
-            self.call_tool(&request.name, args)
-                .await
-                .map(CallToolResponse::from)
-                .map_err(rmcp::model::ErrorData::from)
+        self.call_tool(&request.name, args)
+            .await
+            .map(CallToolResponse::from)
+            .map_err(rmcp::model::ErrorData::from)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    struct EchoTool;
+
+    impl McpTool for EchoTool {
+        fn name(&self) -> &'static str {
+            "echo"
         }
+
+        fn description(&self) -> Option<&'static str> {
+            Some("Echoes the text argument")
+        }
+
+        fn schema(&self) -> Arc<rmcp::model::JsonObject> {
+            Arc::new(serde_json::Map::new())
+        }
+
+        fn call<'a>(
+            &'a self,
+            arguments: serde_json::Value,
+            _states: &'a StateMap,
+        ) -> Pin<Box<dyn Future<Output = Result<CallToolResult, McpError>> + Send + 'a>> {
+            Box::pin(async move {
+                let text = arguments
+                    .get("text")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or_default()
+                    .to_string();
+                Ok(text.into_tool_result())
+            })
+        }
+    }
+
+    fn first_text(result: &CallToolResult) -> String {
+        match result.content.first() {
+            Some(rmcp::model::ContentBlock::Text(text)) => text.text.clone(),
+            other => panic!("expected text content, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn calls_a_registered_tool() {
+        let server = LazyMcp::new("test-server", "0.0.0").with_tool(EchoTool);
+
+        let result = server
+            .call_tool("echo", json!({ "text": "hi" }))
+            .await
+            .unwrap();
+
+        assert_eq!(result.is_error, Some(false));
+        assert_eq!(first_text(&result), "hi");
+    }
+
+    #[tokio::test]
+    async fn calling_an_unknown_tool_returns_method_not_found() {
+        let server = LazyMcp::new("test-server", "0.0.0");
+
+        let err = server.call_tool("missing", json!({})).await.unwrap_err();
+
+        assert!(matches!(err, McpError::MethodNotFound(_)));
+        assert!(err.to_string().contains("missing"));
+    }
+
+    #[test]
+    #[should_panic(expected = "already registered")]
+    fn registering_a_duplicate_tool_name_panics() {
+        LazyMcp::new("test-server", "0.0.0")
+            .with_tool(EchoTool)
+            .with_tool(EchoTool);
+    }
+
+    #[test]
+    fn state_is_retrievable_by_type() {
+        let server = LazyMcp::new("test-server", "0.0.0").with_state(42u64);
+
+        assert_eq!(*server.get_state::<u64>().expect("u64 state"), 42);
+        assert!(server.get_state::<String>().is_none());
+    }
+
+    #[test]
+    fn registering_the_same_state_type_replaces_it() {
+        let server = LazyMcp::new("test-server", "0.0.0")
+            .with_state(1u8)
+            .with_state(2u8);
+
+        assert_eq!(*server.get_state::<u8>().expect("u8 state"), 2);
+    }
+
+    #[test]
+    fn arc_state_is_shared_not_copied() {
+        let arc = Arc::new(String::from("shared"));
+        let server = LazyMcp::new("test-server", "0.0.0").with_arc_state(Arc::clone(&arc));
+
+        let state = server.get_state::<String>().expect("String state");
+
+        assert!(Arc::ptr_eq(&arc, &state.0));
+    }
+
+    #[test]
+    fn list_tools_exposes_names_and_descriptions() {
+        let tools = LazyMcp::new("test-server", "0.0.0")
+            .with_tool(EchoTool)
+            .list_tools();
+
+        assert_eq!(tools.len(), 1);
+        assert_eq!(tools[0].name, "echo");
+        assert_eq!(
+            tools[0].description.as_deref(),
+            Some("Echoes the text argument")
+        );
     }
 }
