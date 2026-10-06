@@ -69,9 +69,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Examples
 Check out the [`lazymcp/examples/`](lazymcp/examples/) directory:
+
 - [`safe_division.rs`](lazymcp/examples/safe_division.rs): Error handling with `Result` and auto-generated docs.
-- [`greeter.rs`](lazymcp/examples/greeter.rs): Optional arguments (`Option<T>`) and system instructions.
-- [`custom_types.rs`](lazymcp/examples/custom_types.rs) — Stateful CRUD task tracker with custom structs, enums, and `Json<T>`.
+- [`greeter_stdio.rs`](lazymcp/examples/greeter_stdio.rs): Optional arguments (`Option<T>`) and system instructions, served over stdio.
+- [`greeter_http.rs`](lazymcp/examples/greeter_http.rs): Same `greet` tool, served over Streamable HTTP. Requires the `http` feature.
+- [`custom_types.rs`](lazymcp/examples/custom_types.rs): Stateful CRUD task tracker with custom structs, enums, and `Json<T>`.
 
 You can run any example directly with Cargo:
 ```bash

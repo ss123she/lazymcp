@@ -17,6 +17,9 @@ pub use serde_json;
 pub use state::State;
 pub use tokio;
 
+#[cfg(feature = "http")]
+pub use axum;
+
 use rmcp::model::{CallToolResponse, ResultType, ServerCapabilities, ServerConfig};
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
@@ -165,6 +168,49 @@ impl LazyMcp {
             .await?;
 
         running_service.waiting().await?;
+
+        Ok(())
+    }
+
+    /// Serves the server over Streamable HTTP at the given address.
+    ///
+    /// Requires the `http` feature.
+    #[cfg(feature = "http")]
+    pub async fn serve_http(
+        self,
+        addr: impl Into<String>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        use rmcp::transport::streamable_http_server::{
+            StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager,
+        };
+        use std::sync::Arc;
+        use tokio_util::sync::CancellationToken;
+
+        let addr: std::net::SocketAddr = addr.into().parse()?;
+        let ct = CancellationToken::new();
+
+        let server = Arc::new(self);
+        let factory = {
+            let server = Arc::clone(&server);
+            move || Ok(Arc::clone(&server))
+        };
+
+        let service = StreamableHttpService::new(
+            factory,
+            LocalSessionManager::default().into(),
+            StreamableHttpServerConfig::default(),
+        );
+
+        let app = axum::Router::new()
+            .nest_service("/mcp", service)
+            .route("/health", axum::routing::get(|| async { "ok" }));
+
+        let listener = tokio::net::TcpListener::bind(addr).await?;
+        eprintln!("MCP server listening on http://{addr}/mcp");
+
+        axum::serve(listener, app)
+            .with_graceful_shutdown(async move { ct.cancelled().await })
+            .await?;
 
         Ok(())
     }

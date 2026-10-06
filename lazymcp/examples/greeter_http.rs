@@ -1,6 +1,6 @@
 //! Greeter tool demonstrating optional parameters (`Option<T>`) and system instructions.
 //!
-//! Run with: `cargo run -p lazymcp --example greeter`
+//! Run with: `cargo run --example greeter_http --features="http" -- 127.0.0.1:8080`
 use lazymcp::{LazyMcp, tool};
 
 /// Generate a customized greeting message.
@@ -29,10 +29,14 @@ fn greet(
 
 #[lazymcp::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    LazyMcp::new("greeter", "0.1.0")
+    let mut args = std::env::args().skip(1);
+
+    let addr = args.next().unwrap_or_else(|| "127.0.0.1:3000".to_string());
+
+    let server = LazyMcp::new("greeter", "0.1.0")
         .with_instructions("Assistant that generates greetings.")
         .with_tool(greet_tool)
-        .serve_stdio()
+        .serve_http(addr)
         .await?;
 
     Ok(())

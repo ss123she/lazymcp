@@ -17,6 +17,33 @@ lazymcp-macros = { version = "0.1.2", path = "../lazymcp-macros" }
 
 rmcp = "3"
 tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", optional = true }
+axum = { version = "0.8", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 schemars = "1"
+
+[features]
+default = []
+http = [
+    "dep:axum",
+    "dep:tokio-util",
+    "rmcp/transport-streamable-http-server",
+]
+
+[[example]]
+name = "custom_types"
+path = "examples/custom_types.rs"
+
+[[example]]
+name = "greeter_stdio"
+path = "examples/greeter_stdio.rs"
+
+[[example]]
+name = "greeter_http"
+path = "examples/greeter_http.rs"
+required-features = ["http"]
+
+[[example]]
+name = "safe_division"
+path = "examples/safe_division.rs"
