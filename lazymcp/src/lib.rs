@@ -121,8 +121,11 @@ impl LazyMcp {
     }
 
     /// Lists registered tools with their schemas.
+    ///
+    /// Tools are returned sorted by name.
     pub fn list_tools(&self) -> Vec<rmcp::model::Tool> {
-        self.tools
+        let mut tools: Vec<_> = self
+            .tools
             .iter()
             .map(|(name, tool)| {
                 let schema = tool.schema();
@@ -131,7 +134,10 @@ impl LazyMcp {
                 t.description = tool.description().map(std::borrow::Cow::from);
                 t
             })
-            .collect()
+            .collect();
+
+        tools.sort_unstable_by(|a, b| a.name.cmp(&b.name));
+        tools
     }
 
     /// Calls a registered tool by name.
@@ -326,5 +332,40 @@ mod tests {
             tools[0].description.as_deref(),
             Some("Echoes the text argument")
         );
+    }
+
+    #[test]
+    fn list_tools_is_sorted_by_name() {
+        struct Named(&'static str);
+        impl McpTool for Named {
+            fn name(&self) -> &'static str {
+                self.0
+            }
+            fn description(&self) -> Option<&'static str> {
+                None
+            }
+            fn schema(&self) -> Arc<rmcp::model::JsonObject> {
+                Arc::new(serde_json::Map::new())
+            }
+            fn call<'a>(
+                &'a self,
+                _: serde_json::Value,
+                _: &'a StateMap,
+            ) -> Pin<Box<dyn Future<Output = Result<CallToolResult, McpError>> + Send + 'a>>
+            {
+                Box::pin(async { Ok(().into_tool_result()) })
+            }
+        }
+
+        let names: Vec<_> = LazyMcp::new("s", "0")
+            .with_tool(Named("zebra"))
+            .with_tool(Named("apple"))
+            .with_tool(Named("mango"))
+            .list_tools()
+            .into_iter()
+            .map(|t| t.name)
+            .collect();
+
+        assert_eq!(names, ["apple", "mango", "zebra"]);
     }
 }

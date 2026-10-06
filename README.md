@@ -19,7 +19,7 @@ An ergonomic, boilerplate-free framework for building [Model Context Protocol (M
 ## Why lazymcp instead of an independent MCP implementation?
 
 Most Rust MCP frameworks (`pmcp`, `rust-mcp-sdk`, `ultrafast-mcp`) reimplement
-the protocol from scratch. `lazymcp` doesn't — it's a thin layer on the
+the protocol from scratch. `lazymcp` doesn't. It's a thin layer on the
 official [`rmcp`](https://github.com/modelcontextprotocol/rust-sdk) SDK, so
 you inherit spec compliance, transport support, and protocol fixes from the
 reference implementation instead of a parallel one.
@@ -71,7 +71,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 Check out the [`lazymcp/examples/`](lazymcp/examples/) directory:
 - [`safe_division.rs`](lazymcp/examples/safe_division.rs): Error handling with `Result` and auto-generated docs.
 - [`greeter.rs`](lazymcp/examples/greeter.rs): Optional arguments (`Option<T>`) and system instructions.
-- [`custom_types.rs`](lazymcp/examples/custom_types.rs): Stateful CRUD task tracker with custom structs, enums, and `Json<T>`.
+- [`custom_types.rs`](lazymcp/examples/custom_types.rs) — Stateful CRUD task tracker with custom structs, enums, and `Json<T>`.
 
 You can run any example directly with Cargo:
 ```bash
