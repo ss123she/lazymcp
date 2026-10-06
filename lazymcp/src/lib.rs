@@ -17,7 +17,7 @@ pub use serde_json;
 pub use state::State;
 pub use tokio;
 
-use rmcp::model::{CallToolResponse, ResultType, ServerCapabilities, ServerInfo};
+use rmcp::model::{CallToolResponse, ResultType, ServerCapabilities, ServerConfig};
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::future::Future;
@@ -165,8 +165,8 @@ impl LazyMcp {
 }
 
 impl rmcp::ServerHandler for LazyMcp {
-    fn get_info(&self) -> ServerInfo {
-        let mut info = ServerInfo::new(self.capabilities.clone()).with_server_info(
+    fn get_info(&self) -> ServerConfig {
+        let mut info = ServerConfig::new(self.capabilities.clone()).with_server_info(
             rmcp::model::Implementation::new(self.name.clone(), self.version.clone()),
         );
 
