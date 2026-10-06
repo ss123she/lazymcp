@@ -206,16 +206,13 @@ pub fn tool(_attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 fn extract_state_inner_type(ty: &Type) -> Option<&Type> {
-    if let Type::Path(type_path) = ty {
-        if let Some(segment) = type_path.path.segments.last() {
-            if segment.ident == "State" {
-                if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
-                    if let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first() {
-                        return Some(inner_ty);
-                    }
-                }
-            }
-        }
+    if let Type::Path(type_path) = ty
+        && let Some(segment) = type_path.path.segments.last()
+        && segment.ident == "State"
+        && let syn::PathArguments::AngleBracketed(args) = &segment.arguments
+        && let Some(syn::GenericArgument::Type(inner_ty)) = args.args.first()
+    {
+        return Some(inner_ty);
     }
     None
 }
@@ -223,15 +220,13 @@ fn extract_state_inner_type(ty: &Type) -> Option<&Type> {
 fn extract_docs(attrs: &[syn::Attribute]) -> Vec<String> {
     let mut docs = Vec::new();
     for attr in attrs {
-        if attr.path().is_ident("doc") {
-            if let NameValue(nv) = &attr.meta {
-                if let syn::Expr::Lit(ExprLit {
-                    lit: Lit::Str(s), ..
-                }) = &nv.value
-                {
-                    docs.push(s.value().trim().to_string());
-                }
-            }
+        if attr.path().is_ident("doc")
+            && let NameValue(nv) = &attr.meta
+            && let syn::Expr::Lit(ExprLit {
+                lit: Lit::Str(s), ..
+            }) = &nv.value
+        {
+            docs.push(s.value().trim().to_string());
         }
     }
     docs

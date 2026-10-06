@@ -1,9 +1,5 @@
 //! Thin, ergonomic macros for building MCP servers directly on the
 //! official [`rmcp`](https://docs.rs/rmcp) SDK.
-//!
-//! Unlike independent reimplementations of the MCP protocol, lazymcp
-//! wraps the reference Rust SDK - so you inherit spec compliance and
-//! transport support instead of maintaining a parallel implementation.
 
 pub mod error;
 pub mod helper;
